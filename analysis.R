@@ -4,28 +4,48 @@ library(tidyverse)
 
 # Loading Data
 df_popsize <- read_csv("data/population/population.csv")
-df_ppp <- read_csv("data/ppp.csv")
+df_ppp <- read_csv("data/GDP PPP/gdp_ppp.csv")
 df_lifexp <- read_csv("data/life expectancy/lifexp.csv")
 df_fertility <-read_csv("data/fertility/fertility.csv")
 
 # Filtering
 
-# Population size from 2018 until 2022 per country
-df_popsize_f <- df_popsize[,c("Country Name", "2010":"2022")] %>%
+# Population size from 2015 until 2022 per country
+df_popsize_f <- df_popsize[,c("Country Name", "2015":"2022")] %>%
   pivot_longer(cols = !"Country Name",
                names_to = "year",
                values_to = "pop_size")
 
-# PPP from 2018 until 2022 per country
-df_ppp_f <- df_ppp %>% filter(time %in% c(2010:2022),
-                              sex.label == "Sex: Total",
-                              classif1.label == "Currency: 2021 PPP $") %>%
-  select(ref_area.label, time, obs_value)
+###########
+# GDP PPP #
+###########
+# from 2015 until 2022 per country
+ppp_col_names = colnames(df_ppp) # Get df column names
+year_features_index = grep('^\\d', ppp_col_names) #Get oonly indexes that start with numbers
+
+for (index in year_features_index){   #Remove the text part extra of the year and convert to numerical
+  old_col_name <- ppp_col_names[index]
+  new_col_name <-  substring(ppp_col_names[index], 1, 4) # Keep only the number and convert to numerical
+  ppp_col_names[index] <- new_col_name  # Update the list with the column names
+}
+colnames(df_ppp) <- ppp_col_names # Update dataset column names
 
 
-# Life expectancy
+
+df_ppp_f <- df_ppp %>% 
+  filter(df_ppp$`Series Name` == "GDP per person employed (constant 2021 PPP $)") %>%
+  select(c("Country Name","2015":"2020")) %>%
+  pivot_longer(cols = !"Country Name",
+               names_to = "year",
+               values_to = "gdp_ppp")
+  
+
+
+###################
+# Life expectancy #
+###################
 df_lifexp_f <- df_lifexp %>% 
-  select(c("Country Name", "2010":"2022")) %>%
+  select(c("Country Name", "2015":"2022")) %>%
   pivot_longer(cols = !"Country Name",
                names_to = "year",
                values_to = "life_exp"
@@ -36,9 +56,9 @@ df <- merge(df_lifexp_f, df_popsize_f, id = c("Country Name", "year"))
 df <- merge(x = df, 
             y = df_ppp_f, 
             by.x = c("Country Name", "year"), 
-            by.y = c("ref_area.label","time"),
+            by.y = c("Country Name","year"),
             all.x = TRUE, all.y = TRUE) %>% 
-  rename("ppp$" = "obs_value")
+  rename("ppp$" = "gdp_ppp")
 
 
 
