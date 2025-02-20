@@ -151,3 +151,14 @@ ggplot(df_top_lifexp, aes(x = year, y = val, fill = country)) +
   scale_x_continuous(breaks=seq(2015,2022,1)) + # Making sure all the years are displayed
   coord_cartesian(ylim = c(75, 90)) #Limiting the range of y axis
 
+
+
+# [4] Population growth of original BRICS
+ggplot(data = df[df$`Country Name` %in% c("Brazil",
+                                 "Russia", 
+                                 "India", 
+                                 "China", 
+                                 "South Africa"),], 
+       aes(x = year, y = pop_size, color = `Country Name`)) + 
+  geom_line(aes(group = `Country Name`), size = 1)
+  
