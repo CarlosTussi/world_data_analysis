@@ -25,7 +25,7 @@ df_popsize_f <- df_popsize[,c("Country Name", "2015":"2022")] %>%
 ###########
 # from 2015 until 2022 per country
 ppp_col_names = colnames(df_ppp) # Get df column names
-year_features_index = grep('^\\d', ppp_col_names) #Get oonly indexes that start with numbers
+year_features_index = grep('^\\d', ppp_col_names) #Get only indexes that start with numbers
 
 for (index in year_features_index){   #Remove the text part extra of the year and convert to numerical
   old_col_name <- ppp_col_names[index]
@@ -42,8 +42,11 @@ df_ppp_f <- df_ppp %>%
   pivot_longer(cols = !"Country Name",
                names_to = "year",
                values_to = "gdp_ppp")
-  
 
+# Converting gdp_ppp column from character to numerical
+
+df_ppp_f$gdp_ppp[df_ppp_f$gdp_ppp == ".."] = NA #removing ".." character and replacing with NA
+df_ppp_f <- transform(df_ppp_f, gdp_ppp = as.numeric(gdp_ppp))
 
 ###################
 # Life expectancy #
@@ -55,14 +58,29 @@ df_lifexp_f <- df_lifexp %>%
                values_to = "life_exp"
   )
 
-# Combine Datasets
+#############
+# Fertility #
+#############
+df_fertility_f <- df_fertility %>% 
+  pivot_longer(
+              cols = c("2015":"2022"),
+              names_to = "year",
+              values_to = "fert_rate"
+            ) %>%
+  select(`Country Name`, year, fert_rate)
+
+
+
+####################
+# Combine Datasets #
+####################
 df <- merge(df_lifexp_f, df_popsize_f, id = c("Country Name", "year"))
 df <- merge(x = df, 
             y = df_ppp_f, 
             by.x = c("Country Name", "year"), 
-            by.y = c("Country Name","year"),
-            all.x = TRUE, all.y = TRUE) %>% 
-  rename("ppp$" = "gdp_ppp")
+            by.y = c("Country.Name","year"),
+            all.x = TRUE, all.y = TRUE)
+df <- merge(x = df, y = df_fertility_f, id = c("Country Name","year"), all.x = TRUE, all.y = TRUE)
 
 ############################
 # Exporting Merged Dataset #
@@ -161,4 +179,33 @@ ggplot(data = df[df$`Country Name` %in% c("Brazil",
                                  "South Africa"),], 
        aes(x = year, y = pop_size, color = `Country Name`)) + 
   geom_line(aes(group = `Country Name`), size = 1)
-  
+
+# [5] Top 5 pop countries in 2020 with their fertility rate and average global fertility rate
+
+# Retrieve global fertility rate average
+global_avg_fertility <- mean(
+                              df %>% 
+                              filter(year == 2020) %>%
+                              pull(fert_rate), #extract the columns as a vector
+                        na.rm = TRUE)
+global_avg_ppp <- mean(df[df$year == 2020,]$gdp_ppp, na.rm = TRUE)
+
+# Filtering top5 fertility rate in 2020
+df_top5 <- df %>%
+  filter(df$year == 2020, df$gdp_ppp >0) %>%
+  select("Country Name", "pop_size", "fert_rate", "gdp_ppp") %>%
+  arrange(fert_rate)
+
+# Lower fertility rate
+ggplot(data = df_top5, aes(x = `Country Name`, fill = fert_rate, y = gdp_ppp, label = fert_rate)) +
+  geom_col(position = "dodge") +
+  geom_line(aes(y = global_avg_ppp, group = global_avg_ppp, color = "PPP Global AVG"), size = 1, linetype = "dashed") +
+  labs(y = "GDP PPP" , color = "", fill = "Fertility rate")
+
+# Highest fertility rate
+ggplot(data = df_top5 %>% arrange(desc(fert_rate)), aes(x = `Country Name`, fill = fert_rate, y = gdp_ppp, label = fert_rate)) +
+  geom_col(position = "dodge") +
+  geom_line(aes(y = global_avg_ppp, group = global_avg_ppp, color = "PPP Global AVG"), size = 1, linetype = "dashed") +
+  labs(y = "GDP PPP" , color = "", fill = "Fertility rate")
+
+            
