@@ -1,6 +1,7 @@
 library(tidyverse)
-
-
+library("ggplot2")
+library("sf")
+library(RColorBrewer)
 
 # Loading Data
 df_popsize <- read_csv("data/population/population.csv")
@@ -15,8 +16,8 @@ df_fertility <-read_csv("data/fertility/fertility.csv")
 # Population #
 ##############
 # Population size from 2015 until 2022 per country
-df_popsize_f <- df_popsize[,c("Country Name", "2015":"2022")] %>%
-  pivot_longer(cols = !"Country Name",
+df_popsize_f <- df_popsize[,c("Country Name", "2015":"2022", "Country Code")] %>%
+  pivot_longer(cols = !c("Country Name","Country Code"),
                names_to = "year",
                values_to = "pop_size")
 
@@ -197,15 +198,28 @@ df_top5 <- df %>%
   arrange(fert_rate)
 
 # Lower fertility rate
-ggplot(data = df_top5, aes(x = `Country Name`, fill = fert_rate, y = gdp_ppp, label = fert_rate)) +
+ggplot(data = df_top5  %>% head(5), 
+       aes(x = `Country Name`, fill = fert_rate, y = gdp_ppp, label = fert_rate)) +
   geom_col(position = "dodge") +
   geom_line(aes(y = global_avg_ppp, group = global_avg_ppp, color = "PPP Global AVG"), size = 1, linetype = "dashed") +
   labs(y = "GDP PPP" , color = "", fill = "Fertility rate")
 
 # Highest fertility rate
-ggplot(data = df_top5 %>% arrange(desc(fert_rate)), aes(x = `Country Name`, fill = fert_rate, y = gdp_ppp, label = fert_rate)) +
+ggplot(data = df_top5 %>% arrange(desc(fert_rate)) %>% head(5), 
+       aes(x = `Country Name`, fill = fert_rate, y = gdp_ppp, label = fert_rate)) +
   geom_col(position = "dodge") +
   geom_line(aes(y = global_avg_ppp, group = global_avg_ppp, color = "PPP Global AVG"), size = 1, linetype = "dashed") +
   labs(y = "GDP PPP" , color = "", fill = "Fertility rate")
 
-            
+# [6] Plotting map
+# Geometry info got from basemap dataset from ggplot2
+world <- ne_countries(scale = "medium", returnclass = "sf")
+# Customize with needed info
+df_world <- merge(x = df, y=select(world, c("iso_a3", "geometry")), by.x = "Country Code", by.y = "iso_a3")
+
+# Plot the map
+ggplot(df_world) +
+  geom_sf(aes(geometry = geometry, fill = fert_rate)) +
+  scale_fill_viridis_c(option = "rocket", direction = -1) + #Custom color pallet
+  ggtitle("World fertility rate") +
+  theme(plot.title = element_text(hjust = 0.5)) #To centralize the title
