@@ -1,7 +1,7 @@
 library(tidyverse)
 library("ggplot2")
 library("sf")
-library(RColorBrewer)
+library(rnaturalearth)
 
 # Loading Data
 df_popsize <- read_csv("data/population/population.csv")
@@ -102,20 +102,28 @@ write_csv(df,"data/merged_df.csv")
 ggplot(data = df[df$`Country Name`=="Brazil", c("year", "life_exp")],
        aes(x = year, y = life_exp, label = life_exp, fill = life_exp))  +
   geom_col() +
-  geom_text(vjust = 2, color = "white")
+  geom_text(vjust = 2, color = "white") + 
+  ggtitle("Life Expectancy in Brazil") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(y= "Life Expectancy", x = "Year", fill = " Life \n Expectancy")
+ggsave("images/average_life_expectancy.png")
 
 #[2]
 # Population increase 2010 - 2020 for Brazil and Italy
 ggplot(data = df[df$`Country Name` %in% c("Brazil", "Italy"),  c("year", "pop_size", "Country Name")],
-       aes(x = year, y= pop_size, fill = `Country Name`)) +
+       aes(x = year, y= pop_size, fill = `Country Name`, label = round(pop_size/1000000, digits = 2))) +
   # Adding bars - dodge (will separate the 2 countries)
   geom_col(position = "dodge") + 
   #Adding lines - group will create one line per country. *0.8 change the data values and force the line to go down a bit
   geom_line(aes(y = pop_size*0.8, color = `Country Name`, group = `Country Name`), linewidth = 1) +
   # Manually change the pre-assigned colors
   scale_fill_manual(values = c("Brazil" = "salmon", "Italy" = "#008080")) +
-  scale_color_manual(values = c("Brazil" = "#D03000", "Italy" = "#13D4D4"))
-
+  scale_color_manual(values = c("Brazil" = "#D03000", "Italy" = "#13D4D4")) +
+  ggtitle("Population size growth for Brazil and Italy") + 
+  geom_text(hjust =0.51) +
+  theme(plot.title = element_text(hjust = 0.5)) + #To centralize the title
+  labs(y = "Population Size", x = "Year")
+ggsave("images/population_growth_bra_ita.png")
 
 
 #[3]
@@ -168,8 +176,10 @@ ggplot(df_top_lifexp, aes(x = year, y = val, fill = country)) +
   geom_col(position = "dodge", width = 0.7) + 
   labs(x = "Year", y = "Life Exp", fill = "Country") +
   scale_x_continuous(breaks=seq(2015,2022,1)) + # Making sure all the years are displayed
-  coord_cartesian(ylim = c(75, 90)) #Limiting the range of y axis
-
+  coord_cartesian(ylim = c(75, 90)) + #Limiting the range of y axis
+  ggtitle("Top 5 countries with highest life expectancy") + 
+  theme(plot.title = element_text(hjust = 0.5)) + #To centralize the title
+ggsave("images/top3_lifexpt_per_year.png")
 
 
 # [4] Population growth of original BRICS
@@ -179,8 +189,11 @@ ggplot(data = df[df$`Country Name` %in% c("Brazil",
                                  "China", 
                                  "South Africa"),], 
        aes(x = year, y = pop_size, color = `Country Name`)) + 
-  geom_line(aes(group = `Country Name`), size = 1)
-
+  geom_line(aes(group = `Country Name`), size = 1) +
+  ggtitle("Original BRICS Population growth") + 
+  theme(plot.title = element_text(hjust = 0.5)) #To centralize the title
+  ggtitle("Top lowest fertility rate with purchase power 2020") + 
+  theme(plot.title = element_text(hjust = 0.5)) #To centralize the titleggsave("images/population_growth.png")
 # [5] Top 5 pop countries in 2020 with their fertility rate and average global fertility rate
 
 # Retrieve global fertility rate average
@@ -202,24 +215,31 @@ ggplot(data = df_top5  %>% head(5),
        aes(x = `Country Name`, fill = fert_rate, y = gdp_ppp, label = fert_rate)) +
   geom_col(position = "dodge") +
   geom_line(aes(y = global_avg_ppp, group = global_avg_ppp, color = "PPP Global AVG"), size = 1, linetype = "dashed") +
-  labs(y = "GDP PPP" , color = "", fill = "Fertility rate")
+  labs(y = "GDP PPP" , color = "", fill = "Fertility rate") +
+  ggtitle("Top lowest fertility rate with purchase power 2020") + 
+  theme(plot.title = element_text(hjust = 0.5)) #To centralize the title
+ggsave("images/ppp-vs-low_fertility_rate.png")
 
 # Highest fertility rate
 ggplot(data = df_top5 %>% arrange(desc(fert_rate)) %>% head(5), 
        aes(x = `Country Name`, fill = fert_rate, y = gdp_ppp, label = fert_rate)) +
   geom_col(position = "dodge") +
   geom_line(aes(y = global_avg_ppp, group = global_avg_ppp, color = "PPP Global AVG"), size = 1, linetype = "dashed") +
-  labs(y = "GDP PPP" , color = "", fill = "Fertility rate")
-
+  labs(y = "GDP PPP" , color = "", fill = "Fertility rate") + 
+  ggtitle("Top highest fertility rate with purchase power 2020") + 
+  theme(plot.title = element_text(hjust = 0.5)) #To centralize the title
+ggsave("images/ppp-vs-high_fertility_rate.png")
 # [6] Plotting map
 # Geometry info got from basemap dataset from ggplot2
 world <- ne_countries(scale = "medium", returnclass = "sf")
 # Customize with needed info
-df_world <- merge(x = df, y=select(world, c("iso_a3", "geometry")), by.x = "Country Code", by.y = "iso_a3")
+df_world <- merge(x = df[df$year == 2022,], y=select(world, c("iso_a3", "geometry")), by.x = "Country Code", by.y = "iso_a3")
 
 # Plot the map
 ggplot(df_world) +
   geom_sf(aes(geometry = geometry, fill = fert_rate)) +
   scale_fill_viridis_c(option = "rocket", direction = -1) + #Custom color pallet
-  ggtitle("World fertility rate") +
+  ggtitle("World fertility rate 2022") +
   theme(plot.title = element_text(hjust = 0.5)) #To centralize the title
+ggsave("images/world_fert_rate_2022.png")
+
