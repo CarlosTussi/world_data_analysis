@@ -77,3 +77,7 @@ subset(grades, grade >= 7, select=c(student, situation)) #Same as above but with
 # Merging Datasets
 school <- merge(grades, students, id = "student")
 
+
+# String
+start_with_numbers = "^\\d"
+grepl(start_with_numbers, "423432aosdjfdsifj")

@@ -105,7 +105,7 @@ ggplot(data = df[df$`Country Name`=="Brazil", c("year", "life_exp")],
   geom_text(vjust = 2, color = "white") + 
   ggtitle("Life Expectancy in Brazil") + 
   theme(plot.title = element_text(hjust = 0.5)) + 
-  labs(y= "Life Expectancy", x = "Year", fill = " Life \n Expectancy")
+  labs(y= "Life Exp", x = "Year", fill = " Life \n Exp")
 ggsave("images/average_life_expectancy.png")
 
 #[2]
@@ -122,7 +122,7 @@ ggplot(data = df[df$`Country Name` %in% c("Brazil", "Italy"),  c("year", "pop_si
   ggtitle("Population size growth for Brazil and Italy") + 
   geom_text(hjust =0.51) +
   theme(plot.title = element_text(hjust = 0.5)) + #To centralize the title
-  labs(y = "Population Size", x = "Year")
+  labs(y = "Pop Size", x = "Year")
 ggsave("images/population_growth_bra_ita.png")
 
 
@@ -178,7 +178,7 @@ ggplot(df_top_lifexp, aes(x = year, y = val, fill = country)) +
   scale_x_continuous(breaks=seq(2015,2022,1)) + # Making sure all the years are displayed
   coord_cartesian(ylim = c(75, 90)) + #Limiting the range of y axis
   ggtitle("Top 5 countries with highest life expectancy") + 
-  theme(plot.title = element_text(hjust = 0.5)) + #To centralize the title
+  theme(plot.title = element_text(hjust = 0.5)) #To centralize the title
 ggsave("images/top3_lifexpt_per_year.png")
 
 
@@ -191,9 +191,12 @@ ggplot(data = df[df$`Country Name` %in% c("Brazil",
        aes(x = year, y = pop_size, color = `Country Name`)) + 
   geom_line(aes(group = `Country Name`), size = 1) +
   ggtitle("Original BRICS Population growth") + 
+  theme(plot.title = element_text(hjust = 0.5)) + #To centralize the title
+  labs(y = "Pop Size", x = "Year") +
   theme(plot.title = element_text(hjust = 0.5)) #To centralize the title
-  ggtitle("Top lowest fertility rate with purchase power 2020") + 
-  theme(plot.title = element_text(hjust = 0.5)) #To centralize the titleggsave("images/population_growth.png")
+ggsave("images/brics_population_growth.png")
+
+
 # [5] Top 5 pop countries in 2020 with their fertility rate and average global fertility rate
 
 # Retrieve global fertility rate average
@@ -238,8 +241,17 @@ df_world <- merge(x = df[df$year == 2022,], y=select(world, c("iso_a3", "geometr
 # Plot the map
 ggplot(df_world) +
   geom_sf(aes(geometry = geometry, fill = fert_rate)) +
+  labs(fill = " Fertility \n Rate") + 
   scale_fill_viridis_c(option = "rocket", direction = -1) + #Custom color pallet
   ggtitle("World fertility rate 2022") +
   theme(plot.title = element_text(hjust = 0.5)) #To centralize the title
 ggsave("images/world_fert_rate_2022.png")
 
+
+# [7] Population growth over the years for the original BRICS
+BRICS <- c("Brazil", "Russian Federation", "India", "China", "South Africa")
+df_brics_pop <- df %>% filter(`Country Name` %in% BRICS)
+
+ggplot(df_brics_pop) +
+  geom_col(aes(x = year, y = pop_size, group = `Country Name`)) + 
+  facet_wrap(`Country Name`~ `Country Code`, nrow = 3)
